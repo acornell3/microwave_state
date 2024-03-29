@@ -10,7 +10,7 @@ class Microwave
       Microwave() : door_is_open(false), light_is_on(false), power_is_on(false), cooking(false), timer(0)
       {}
 
-      void set_timer_in_seconds(unsigned int seconds)
+      void event_set_timer_in_seconds(unsigned int seconds)
       {
          if (the_power_is_on() && is_not_cooking())
          {
@@ -107,7 +107,7 @@ class Microwave
       bool the_power_is_off() { return !power_is_on; }
       bool is_cooking() { return cooking; }
       bool is_not_cooking() { return !cooking; }
-      bool timer_is_set() { return timer > 0;}
+      bool timer_is_set() { return timer > 0; }
 
       bool light_on_conditions_met()
       {
@@ -131,7 +131,6 @@ class Microwave
          std::cout << "--LIGHT ON" << std::endl;
          light_is_on = true;
       }
-
 
       void turn_light_off()
       {
@@ -179,7 +178,7 @@ int main ()
    mw.event_open_door();
    mw.event_close_door();
 
-   mw.set_timer_in_seconds(3);
+   mw.event_set_timer_in_seconds(3);
    mw.event_start_cooking();
 
    mw.event_open_door();
