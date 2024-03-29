@@ -6,36 +6,43 @@ using namespace std::chrono_literals;
 
 class Microwave
 {
+   enum struct DOOR_STATE_type { OPEN, CLOSED };
+   enum struct LIGHT_STATE_type { ON, OFF };
+   enum struct POWER_STATE_type { ON, OFF };
+   enum struct COOKING_STATE_type { COOKING, IDLE };
+   
    public:
-      Microwave() : door_is_open(false), light_is_on(false), power_is_on(false), cooking(false), timer(0)
-      {}
+      Microwave() : door_state(DOOR_STATE_type::CLOSED), light_state(LIGHT_STATE_type::OFF), power_state(POWER_STATE_type::OFF), cooking_state(COOKING_STATE_type::IDLE), timer(0)
+      {
+         std::cout << "MW CREATED!" << std::endl << std::endl;
+      }
 
       void event_set_timer_in_seconds(unsigned int seconds)
       {
-         if (the_power_is_on() && is_not_cooking())
+         if (power_is_on() && mw_is_idle())
          {
-            std::cout << "SET TIMER TO " << seconds << " SECONDS" << std::endl;
+            std::cout << "EVENT SET TIMER TO " << seconds << " SECONDS" << std::endl;
             timer = seconds;
          }
       }
 
       void event_start_cooking()
       {
-         if(the_power_is_on() && the_door_is_closed() && timer_is_set() && is_not_cooking())
+         if(power_is_on() && door_is_closed() && timer_is_set() && mw_is_idle())
          {
-            std::cout << "START COOKING FOR " << timer << " SECONDS" << std::endl;
+            std::cout << "EVENT START COOKING" << std::endl;
             start_timer_countdown();
          }
       }
 
       void event_open_door() 
       {
-         if (the_door_is_closed())
+         if (door_is_closed())
          {
-            std::cout << "OPEN DOOR" << std::endl;
-            door_is_open = true;
+            std::cout << "EVENT OPEN DOOR" << std::endl;
+            door_state = DOOR_STATE_type::OPEN;
 
-            if(is_cooking())
+            if(mw_is_cooking())
             {
                event_pause_cooking();
             }
@@ -46,10 +53,10 @@ class Microwave
 
       void event_close_door() 
       {
-         if (the_door_is_open())
+         if (door_is_open())
          {
-            std::cout << "CLOSE DOOR" << std::endl;
-            door_is_open = false;
+            std::cout << "EVENT CLOSE DOOR" << std::endl;
+            door_state = DOOR_STATE_type::CLOSED;
          }
 
          check_light_conditions();
@@ -57,12 +64,12 @@ class Microwave
 
       void event_power_off()
       {
-         if(the_power_is_on())
+         if(power_is_on())
          {
-            std::cout << "POWER OFF" << std::endl;
-            light_is_on = false;
-            power_is_on = false;
-            cooking = false;
+            std::cout << "EVENT POWER OFF" << std::endl;
+            light_state = LIGHT_STATE_type::OFF;
+            power_state = POWER_STATE_type::OFF;
+            cooking_state = COOKING_STATE_type::IDLE;
             timer = 0;
          }
 
@@ -71,11 +78,11 @@ class Microwave
 
       void event_power_on()
       {
-         if(the_power_is_off())
+         if(power_is_off())
          {
-            std::cout << "POWER ON" << std::endl;
-            power_is_on = true;
-            cooking = false;
+            std::cout << "EVENT POWER ON" << std::endl;
+            power_state = POWER_STATE_type::ON;
+            cooking_state = COOKING_STATE_type::IDLE;
             timer = 0;
          }
 
@@ -93,25 +100,25 @@ class Microwave
       }
 
    private:
-      bool door_is_open;
-      bool light_is_on;
-      bool power_is_on;
-      bool cooking;
+      DOOR_STATE_type door_state;
+      LIGHT_STATE_type light_state;
+      POWER_STATE_type power_state;
+      COOKING_STATE_type cooking_state;
 
       unsigned int timer;
 
-      bool the_light_is_off() { return !light_is_on; }
-      bool the_door_is_open() { return door_is_open; }
-      bool the_door_is_closed() { return !door_is_open; }
-      bool the_power_is_on() { return power_is_on; }
-      bool the_power_is_off() { return !power_is_on; }
-      bool is_cooking() { return cooking; }
-      bool is_not_cooking() { return !cooking; }
-      bool timer_is_set() { return timer > 0; }
+      bool light_is_off() const { return LIGHT_STATE_type::OFF == light_state; }
+      bool door_is_open() const { return DOOR_STATE_type::OPEN == door_state; }
+      bool door_is_closed() const { return DOOR_STATE_type::CLOSED == door_state; }
+      bool power_is_on() const { return POWER_STATE_type::ON == power_state; }
+      bool power_is_off() const { return POWER_STATE_type::OFF == power_state; }
+      bool mw_is_cooking() const { return COOKING_STATE_type::COOKING == cooking_state; }
+      bool mw_is_idle() const { return COOKING_STATE_type::IDLE == cooking_state; }
+      bool timer_is_set() const { return timer > 0; }
 
       bool light_on_conditions_met()
       {
-         return (the_power_is_on() && the_light_is_off() && (the_door_is_open() || is_cooking()));
+         return (power_is_on() && light_is_off() && (door_is_open() || mw_is_cooking()));
       }
 
       void check_light_conditions()
@@ -128,32 +135,32 @@ class Microwave
       
       void turn_light_on()
       {
-         std::cout << "--LIGHT ON" << std::endl;
-         light_is_on = true;
+         std::cout << "--light is ON" << std::endl;
+         light_state = LIGHT_STATE_type::ON;
       }
 
       void turn_light_off()
       {
-         std::cout << "--LIGHT OFF" << std::endl;
-         light_is_on = false;
+         std::cout << "--light is OFF" << std::endl;
+         light_state = LIGHT_STATE_type::OFF;
       }
 
       void cook_timer_completed()
       {
-         cooking = false;
+         cooking_state = COOKING_STATE_type::IDLE;
          timer = 0;
          check_light_conditions();
       }
 
-      void start_timer_countdown()
+      void start_timer_countdown() // needs threading & mutex
       {
-         cooking = true;
+         cooking_state = COOKING_STATE_type::COOKING;
          check_light_conditions();
 
-         for(int cd = timer; cd != 0; --cd)
+         for(unsigned int cd = timer; cd != 0; --cd)
          {
-            std::cout << "--" << cd << " LIGHT ";
-            if(light_is_on)
+            std::cout << "--" << cd << " light is ";
+            if(LIGHT_STATE_type::ON == light_state)
             {
                std::cout << "ON" << std::endl;
             }
